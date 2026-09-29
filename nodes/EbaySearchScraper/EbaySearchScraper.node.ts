@@ -31,6 +31,7 @@ const OPTION_FIELDS: Record<string, OptionField> = {
 	},
 	maxPrice: {
 		key: 'max_price',
+		kind: 'nonZero',
 	},
 	freeShipping: {
 		key: 'free_shipping',
@@ -338,7 +339,8 @@ export class EbaySearchScraper implements INodeType {
 						name: 'maxPrice',
 						type: 'number',
 						default: 0,
-						description: "Highest price to include, in the marketplace's currency",
+						description:
+							"Highest price to include, in the marketplace's currency. 0 means no upper limit.",
 					},
 					{
 						displayName: 'Min Price',

@@ -55,7 +55,6 @@ The token starts with `apify_api_`. Treat it like a password: anyone who has it 
 
 Already have an **Apify API** credential in n8n (for example from the official Apify node)? This node uses the same credential type, so you can simply select it.
 
-
 ## Operations
 
 Pick a **Resource** and an **Operation**. Each n8n input item starts one Apify run. List fields accept several values separated by commas or new lines, or an array returned by an expression.
@@ -73,7 +72,7 @@ Pick a **Resource** and an **Operation**. Each n8n input item starts one Apify r
 | **Free Shipping Only** | Whether to return only listings eBay marks as free delivery |
 | **Listing Type** | Auction, fixed-price (Buy It Now) or all. |
 | **Marketplace** | Which regional eBay site to search. Prices, currency and availability differ per marketplace. |
-| **Max Price** | Highest price to include, in the marketplace's currency |
+| **Max Price** | Highest price to include, in the marketplace's currency. 0 means no upper limit. |
 | **Min Price** | Lowest price to include, in the marketplace's currency. 0 means no minimum. |
 | **Page Size** | Listings per page eBay returns (60, 120 or 240). Larger means fewer requests. |
 | **Proxy Country** | Exit-IP country (ISO-2, e.g. US). Defaults to an exit chosen for the marketplace. |
@@ -99,7 +98,6 @@ The node can be attached to an n8n **AI Agent** as a tool, so the agent can call
 
 - One item per listing, with price and currency, condition, listing type, seller and feedback, shipping, sold count, image and item URL.
 
-
 Fields of a returned item: `position`, `listingId`, `title`, `url`, `image`, `condition`, `conditionCode`, `itemSpecifics`, `seller`, `price`, `currency`, `priceRaw`, `shippingCost`, `shippingRaw`, `freeShipping`, `sold`, `watchers`, `bids`, `buyItNow`, `bestOffer`, `freeReturns`, `timeLeftRaw`, `locationRaw`, `attributes`, `marketplace`, `searchKeyword`.
 
 Example item (shortened):
@@ -107,24 +105,24 @@ Example item (shortened):
 ```json
 {
   "position": 1,
-  "listingId": "286910050302",
-  "title": "Apple iPhone 13 128GB 256GB 512GB Verizon AT&T T-Mobile Unlocked (Very Good)",
-  "url": "https://www.ebay.com/itm/286910050302",
-  "image": "https://i.ebayimg.com/images/g/fcQAAeSw7QJpcweM/s-l500.jpg",
-  "condition": "Very Good - Refurbished",
+  "listingId": "116996574826",
+  "title": "Apple iPhone 13 128GB Unlocked FACTORY UNLOCKED - EXCELLENT",
+  "url": "https://www.ebay.com/itm/116996574826",
+  "image": "https://i.ebayimg.com/images/g/I14AAeSwV2dpcuJA/s-l500.jpg",
+  "condition": "Excellent - Refurbished",
   "conditionCode": "refurbished",
   "itemSpecifics": [
-    "Very Good - Refurbished"
+    "Excellent - Refurbished"
   ],
   "seller": {
-    "username": "wireless-source",
-    "feedbackPercent": 97.4,
-    "feedbackScore": 25700,
-    "feedbackRaw": "wireless-source 97.4% positive (25.7K)"
+    "username": "everythingforlesss",
+    "feedbackPercent": 99.8,
+    "feedbackScore": 93200,
+    "feedbackRaw": "everythingforlesss 99.8% positive (93.2K)"
   },
-  "price": 229.89,
+  "price": 229.49,
   "currency": "USD",
-  "priceRaw": "$229.89",
+  "priceRaw": "$229.49",
   "shippingCost": null,
   "shippingRaw": null,
   "...": "..."
@@ -183,7 +181,7 @@ To try the node in a minute, copy the workflow below, paste it into the n8n edit
 
 ## Pricing
 
-The node itself is free. The Actor is paid per result on Apify: **$2 per 1,000 listings** plus a tiny start fee per run ($5e-05), charged to the Apify account of your token. Every item the node returns counts as one result. The current price is always shown on the [Actor page](https://apify.com/scrapeunblocker/ebay-search-scraper), and your spending is visible in Apify Console.
+The node itself is free. The Actor is paid per result on Apify: **$2 per 1,000 listings** plus a tiny start fee per run ($0.00005), charged to the Apify account of your token. Every item the node returns counts as one result. The current price is always shown on the [Actor page](https://apify.com/scrapeunblocker/ebay-search-scraper), and your spending is visible in Apify Console.
 
 ## Compatibility
 
