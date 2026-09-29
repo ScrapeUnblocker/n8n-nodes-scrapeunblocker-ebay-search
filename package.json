@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-scrapeunblocker-ebay-search",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "n8n community node for the eBay Search Scraper Apify Actor by ScrapeUnblocker: eBay listings with price, condition, seller and shipping as JSON",
 	"license": "MIT",
 	"homepage": "https://github.com/ScrapeUnblocker/n8n-nodes-scrapeunblocker-ebay-search#readme",
