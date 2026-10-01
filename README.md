@@ -67,6 +67,7 @@ Pick a **Resource** and an **Operation**. Each n8n input item starts one Apify r
 
 | Option | Description |
 |---|---|
+| **Browse From Country** | Two-letter code of the country the site is opened from (e.g. US). Defaults to the marketplace's country. |
 | **Category ID** | The eBay category ID to search inside, e.g. '131090' for vehicle parts. |
 | **Condition** | Only listings in this condition. Leave blank for any. |
 | **Free Shipping Only** | Whether to return only listings eBay marks as free delivery |
@@ -75,10 +76,16 @@ Pick a **Resource** and an **Operation**. Each n8n input item starts one Apify r
 | **Max Price** | Highest price to include, in the marketplace's currency. 0 means no upper limit. |
 | **Min Price** | Lowest price to include, in the marketplace's currency. 0 means no minimum. |
 | **Page Size** | Listings per page eBay returns (60, 120 or 240). Larger means fewer requests. |
-| **Proxy Country** | Exit-IP country (ISO-2, e.g. US). Defaults to an exit chosen for the marketplace. |
 | **Seller** | Restrict to a single seller's username. |
+| **Timeout (Seconds)** | How long the Apify run may take, in seconds. 0 uses the Actor's default. If the time runs out, the node stops. |
+
+### Sort
+
+The **Sort** setting below Options orders the results.
+
+| Setting | Description |
+|---|---|
 | **Sort By** | Result ordering. |
-| **Timeout (Seconds)** | Maximum run time of the Apify run. `0` keeps the Actor default. A run that times out fails the node. |
 
 ### How a run works
 
@@ -92,37 +99,43 @@ Stopping the n8n execution only stops the node from waiting: the Apify run keeps
 
 ### Use as an AI Agent tool
 
-The node can be attached to an n8n **AI Agent** as a tool, so the agent can call it on its own.
+The node can be attached to an n8n **AI Agent** as a tool, so the agent can call it on its own. In the tool, the **Output** setting decides what the agent receives: **Simplified** (the fields above), **Raw** (every field) or **Selected Fields** (the fields you pick), which keeps the agent's context small.
 
 ## Output
 
 - One item per listing, with price and currency, condition, listing type, seller and feedback, shipping, sold count, image and item URL.
 
-Fields of a returned item: `position`, `listingId`, `title`, `url`, `image`, `condition`, `conditionCode`, `itemSpecifics`, `seller`, `price`, `currency`, `priceRaw`, `shippingCost`, `shippingRaw`, `freeShipping`, `sold`, `watchers`, `bids`, `buyItNow`, `bestOffer`, `freeReturns`, `timeLeftRaw`, `locationRaw`, `attributes`, `marketplace`, `searchKeyword`.
+**Simplify** is on by default, so each item carries only the most useful fields:
+
+- `listingId`, `title`, `price`, `currency`, `shippingCost`, `condition`, `sellerUsername`, `locationRaw`, `url`, `image`
+
+Turn **Simplify** off to get every field of the raw item (listed below).
+
+Fields of a raw item: `position`, `listingId`, `title`, `url`, `image`, `condition`, `conditionCode`, `itemSpecifics`, `seller`, `price`, `currency`, `priceRaw`, `shippingCost`, `shippingRaw`, `freeShipping`, `sold`, `watchers`, `bids`, `buyItNow`, `bestOffer`, `freeReturns`, `timeLeftRaw`, `locationRaw`, `attributes`, `marketplace`, `searchKeyword`.
 
 Example item (shortened):
 
 ```json
 {
   "position": 1,
-  "listingId": "116996574826",
-  "title": "Apple iPhone 13 128GB Unlocked FACTORY UNLOCKED - EXCELLENT",
-  "url": "https://www.ebay.com/itm/116996574826",
-  "image": "https://i.ebayimg.com/images/g/I14AAeSwV2dpcuJA/s-l500.jpg",
-  "condition": "Excellent - Refurbished",
-  "conditionCode": "refurbished",
+  "listingId": "226727354893",
+  "title": "Apple iPhone SE 2nd Gen (Unlocked, Verizon, AT&T, T-Mobile) Excellent Mint Cond.",
+  "url": "https://www.ebay.com/itm/226727354893",
+  "image": "https://i.ebayimg.com/images/g/9KoAAeSwqZhpjO-X/s-l500.jpg",
+  "condition": "Pre-Owned",
+  "conditionCode": "used",
   "itemSpecifics": [
-    "Excellent - Refurbished"
+    "Pre-Owned"
   ],
   "seller": {
-    "username": "everythingforlesss",
+    "username": "cocosprinkles",
     "feedbackPercent": 99.8,
-    "feedbackScore": 93200,
-    "feedbackRaw": "everythingforlesss 99.8% positive (93.2K)"
+    "feedbackScore": 41600,
+    "feedbackRaw": "cocosprinkles 99.8% positive (41.6K)"
   },
-  "price": 229.49,
+  "price": 129.99,
   "currency": "USD",
-  "priceRaw": "$229.49",
+  "priceRaw": "$129.99",
   "shippingCost": null,
   "shippingRaw": null,
   "...": "..."
@@ -198,3 +211,4 @@ Tested with n8n 2.40 (self-hosted).
 
 - 0.1.0: Initial release
 - 0.1.1: First release published from GitHub Actions with an npm provenance statement
+- 0.1.2: Follows n8n's UX guidelines: example placeholders, plainer descriptions and messages, a Simplify setting (Output for the AI tool) and Sort below Options
