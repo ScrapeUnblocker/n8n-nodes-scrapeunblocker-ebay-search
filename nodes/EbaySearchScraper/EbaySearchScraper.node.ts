@@ -8,8 +8,8 @@ import type {
 } from 'n8n-workflow';
 import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
-import type { OptionField } from './GenericFunctions';
-import { applyOptions, requireString, runActorAndGetItems } from './GenericFunctions';
+import type { OptionField, OutputShape } from './GenericFunctions';
+import { applyOptions, requireString, runActorAndGetItems, shapeItems } from './GenericFunctions';
 
 // ScrapeUnblocker's public "eBay Search Scraper" Actor: https://apify.com/scrapeunblocker/ebay-search-scraper
 const ACTOR_ID = 'uJbJP1p6Y6n8Yfzto';
@@ -54,6 +54,25 @@ const OPTION_FIELDS: Record<string, OptionField> = {
 	},
 };
 
+// "resource:operation" -> fields kept by Simplify (dot paths are flattened: a.b -> aB).
+const OUTPUT_SHAPES: Record<string, OutputShape> = {
+	'listing:search': {
+		simplified: [
+			'listingId',
+			'title',
+			'price',
+			'currency',
+			'shippingCost',
+			'condition',
+			'seller.username',
+			'locationRaw',
+			'url',
+			'image',
+		],
+		idField: 'listingId',
+	},
+};
+
 function buildActorInput(
 	this: IExecuteFunctions,
 	resource: string,
@@ -72,7 +91,7 @@ function buildActorInput(
 		default:
 			throw new NodeOperationError(
 				this.getNode(),
-				`The operation "${operation}" is not supported for resource "${resource}"`,
+				`The operation '${operation}' is not supported for resource '${resource}'`,
 				{ itemIndex },
 			);
 	}
@@ -134,7 +153,7 @@ export class EbaySearchScraper implements INodeType {
 					{
 						name: 'Search',
 						value: 'search',
-						description: 'Search eBay listings by keyword',
+						description: 'Find listings that match a keyword on any regional eBay site',
 						action: 'Search listings',
 					},
 				],
@@ -146,7 +165,7 @@ export class EbaySearchScraper implements INodeType {
 				type: 'string',
 				required: true,
 				default: '',
-				placeholder: 'iphone 13',
+				placeholder: 'e.g. iphone 13',
 				description:
 					"What to search for - a keyword, product name or part number (e.g. 'iphone 13' or '1K0953519A')",
 				displayOptions: {
@@ -174,12 +193,189 @@ export class EbaySearchScraper implements INodeType {
 				},
 			},
 			{
+				displayName: 'Simplify',
+				name: 'simplify',
+				type: 'boolean',
+				default: true,
+				description:
+					'Whether to return a simplified version of the response instead of the raw data',
+				displayOptions: {
+					show: {
+						resource: ['listing'],
+						operation: ['search'],
+						'@tool': [false],
+					},
+				},
+			},
+			{
+				displayName: 'Output',
+				name: 'output',
+				type: 'options',
+				default: 'simple',
+				description: 'Which fields of each result to send to the agent',
+				options: [
+					{
+						name: 'Raw',
+						value: 'raw',
+						description: 'Send all the available fields',
+					},
+					{
+						name: 'Selected Fields',
+						value: 'fields',
+						description: 'Send only the fields you select',
+					},
+					{
+						name: 'Simplified',
+						value: 'simple',
+						description:
+							'Send the most useful fields (Listing ID, Title, Price, Currency, Shipping Cost, Condition, Seller Username, Location Raw, URL, Image)',
+					},
+				],
+				displayOptions: {
+					show: {
+						resource: ['listing'],
+						operation: ['search'],
+						'@tool': [true],
+					},
+				},
+			},
+			{
+				displayName: 'Fields',
+				name: 'fields',
+				type: 'multiOptions',
+				default: [],
+				description: 'The fields to send to the agent. Listing ID is always included.',
+				options: [
+					{
+						name: 'Attributes',
+						value: 'attributes',
+					},
+					{
+						name: 'Best Offer',
+						value: 'bestOffer',
+					},
+					{
+						name: 'Bids',
+						value: 'bids',
+					},
+					{
+						name: 'Buy It Now',
+						value: 'buyItNow',
+					},
+					{
+						name: 'Condition',
+						value: 'condition',
+					},
+					{
+						name: 'Condition Code',
+						value: 'conditionCode',
+					},
+					{
+						name: 'Currency',
+						value: 'currency',
+					},
+					{
+						name: 'Free Returns',
+						value: 'freeReturns',
+					},
+					{
+						name: 'Free Shipping',
+						value: 'freeShipping',
+					},
+					{
+						name: 'Image',
+						value: 'image',
+					},
+					{
+						name: 'Item Specifics',
+						value: 'itemSpecifics',
+					},
+					{
+						name: 'Listing ID',
+						value: 'listingId',
+					},
+					{
+						name: 'Location Raw',
+						value: 'locationRaw',
+					},
+					{
+						name: 'Marketplace',
+						value: 'marketplace',
+					},
+					{
+						name: 'Position',
+						value: 'position',
+					},
+					{
+						name: 'Price',
+						value: 'price',
+					},
+					{
+						name: 'Price Raw',
+						value: 'priceRaw',
+					},
+					{
+						name: 'Search Keyword',
+						value: 'searchKeyword',
+					},
+					{
+						name: 'Seller',
+						value: 'seller',
+					},
+					{
+						name: 'Shipping Cost',
+						value: 'shippingCost',
+					},
+					{
+						name: 'Shipping Raw',
+						value: 'shippingRaw',
+					},
+					{
+						name: 'Sold',
+						value: 'sold',
+					},
+					{
+						name: 'Time Left Raw',
+						value: 'timeLeftRaw',
+					},
+					{
+						name: 'Title',
+						value: 'title',
+					},
+					{
+						name: 'URL',
+						value: 'url',
+					},
+					{
+						name: 'Watchers',
+						value: 'watchers',
+					},
+				],
+				displayOptions: {
+					show: {
+						resource: ['listing'],
+						operation: ['search'],
+						'@tool': [true],
+						output: ['fields'],
+					},
+				},
+			},
+			{
 				displayName: 'Options',
 				name: 'options',
 				type: 'collection',
 				placeholder: 'Add Option',
 				default: {},
 				options: [
+					{
+						displayName: 'Browse From Country',
+						name: 'proxyCountry',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. US',
+						description:
+							"Two-letter code of the country the site is opened from (e.g. US). Defaults to the marketplace's country.",
+					},
 					{
 						displayName: 'Category ID',
 						name: 'category',
@@ -363,21 +559,32 @@ export class EbaySearchScraper implements INodeType {
 							'Listings per page eBay returns (60, 120 or 240). Larger means fewer requests.',
 					},
 					{
-						displayName: 'Proxy Country',
-						name: 'proxyCountry',
-						type: 'string',
-						default: '',
-						placeholder: 'US',
-						description:
-							'Exit-IP country (ISO-2, e.g. US). Defaults to an exit chosen for the marketplace.',
-					},
-					{
 						displayName: 'Seller',
 						name: 'seller',
 						type: 'string',
 						default: '',
 						description: "Restrict to a single seller's username",
 					},
+					{
+						displayName: 'Timeout (Seconds)',
+						name: 'timeout',
+						type: 'number',
+						typeOptions: {
+							minValue: 0,
+						},
+						default: 0,
+						description:
+							"How long the Apify run may take, in seconds. 0 uses the Actor's default. If the time runs out, the node stops.",
+					},
+				],
+			},
+			{
+				displayName: 'Sort',
+				name: 'sorting',
+				type: 'collection',
+				placeholder: 'Add Sort Rule',
+				default: {},
+				options: [
 					{
 						displayName: 'Sort By',
 						name: 'sort',
@@ -407,17 +614,6 @@ export class EbaySearchScraper implements INodeType {
 						default: 'best_match',
 						description: 'Result ordering',
 					},
-					{
-						displayName: 'Timeout (Seconds)',
-						name: 'timeout',
-						type: 'number',
-						typeOptions: {
-							minValue: 0,
-						},
-						default: 0,
-						description:
-							'Maximum run time of the Apify Actor run. 0 keeps the Actor default. A run that times out fails the node.',
-					},
 				],
 			},
 		],
@@ -433,8 +629,15 @@ export class EbaySearchScraper implements INodeType {
 				const operation = this.getNodeParameter('operation', i) as string;
 				const options = this.getNodeParameter('options', i, {}) as IDataObject;
 				const { timeout, ...actorOptions } = options;
+				const sorting = this.getNodeParameter('sorting', i, {}) as IDataObject;
 
-				const input = buildActorInput.call(this, resource, operation, actorOptions, i);
+				const input = buildActorInput.call(
+					this,
+					resource,
+					operation,
+					{ ...actorOptions, ...sorting },
+					i,
+				);
 				const { items: results } = await runActorAndGetItems.call(this, {
 					actorId: ACTOR_ID,
 					integrationAppId: INTEGRATION_APP_ID,
@@ -442,8 +645,9 @@ export class EbaySearchScraper implements INodeType {
 					itemIndex: i,
 					timeoutSecs: (timeout as number) || undefined,
 				});
+				const shape = OUTPUT_SHAPES[`${resource}:${operation}`];
 
-				for (const result of results) {
+				for (const result of shapeItems.call(this, results, shape, i)) {
 					returnData.push({ json: result, pairedItem: { item: i } });
 				}
 			} catch (error) {

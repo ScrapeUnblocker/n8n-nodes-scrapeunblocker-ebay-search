@@ -16,6 +16,22 @@ const MIN_POLL_INTERVAL_MS = 2000;
 const DATASET_PAGE_SIZE = 1000;
 const TERMINAL_STATUSES = ['SUCCEEDED', 'FAILED', 'TIMED-OUT', 'ABORTED'];
 
+// What happened and how to get unstuck, per Apify run status (n8n UX guidelines, "Errors").
+const STOPPED_RUN_TEXT: Record<string, { message: string; hint: string }> = {
+	FAILED: {
+		message: 'The Apify run stopped before it finished',
+		hint: "Open the run log to see why, check the node's fields and run the node again",
+	},
+	'TIMED-OUT': {
+		message: 'The Apify run ran out of time',
+		hint: "Raise 'Timeout (Seconds)' in Options or ask for fewer results, then run the node again",
+	},
+	ABORTED: {
+		message: 'The Apify run was aborted',
+		hint: 'It was stopped in Apify Console or through the Apify API. Run the node again to start a new run',
+	},
+};
+
 export interface ApifyRequest {
 	method: IHttpRequestMethods;
 	endpoint: string;
@@ -37,6 +53,13 @@ export interface ActorRunOptions {
 export interface ActorRunResult {
 	run: IDataObject;
 	items: IDataObject[];
+}
+
+export interface OutputShape {
+	/** Fields kept by Simplify; dot paths are flattened (`seller.username` -> `sellerUsername`). */
+	simplified: string[];
+	/** Always returned with Selected Fields. */
+	idField?: string;
 }
 
 /**
@@ -101,7 +124,7 @@ export function requireString(
 ): string {
 	const value = String(this.getNodeParameter(parameterName, itemIndex) ?? '').trim();
 	if (value === '') {
-		throw new NodeOperationError(this.getNode(), `Enter a value for "${displayName}"`, {
+		throw new NodeOperationError(this.getNode(), `Enter a value for '${displayName}'`, {
 			itemIndex,
 		});
 	}
@@ -123,7 +146,7 @@ export function requireList(
 		newlineOnly ? NEWLINE_SEPARATOR : undefined,
 	);
 	if (list.length === 0) {
-		throw new NodeOperationError(this.getNode(), `Enter at least one value for "${displayName}"`, {
+		throw new NodeOperationError(this.getNode(), `Enter at least one value for '${displayName}'`, {
 			itemIndex,
 		});
 	}
@@ -271,12 +294,72 @@ export async function runActorAndGetItems(
 			run.defaultDatasetId as string,
 			integrationAppId,
 		);
-		throw new NodeOperationError(this.getNode(), `Actor run ${String(run.status)}${reason}`, {
+		const text = STOPPED_RUN_TEXT[run.status as string] ?? STOPPED_RUN_TEXT.FAILED;
+		throw new NodeOperationError(this.getNode(), `${text.message}${reason}`, {
 			itemIndex,
-			description: `See the run log in Apify Console: ${runUrl}.${savedResults}`,
+			description: `${text.hint}. Run log: ${runUrl}.${savedResults}`,
 		});
 	}
 
 	const items = await getDatasetItems.call(this, run.defaultDatasetId as string, integrationAppId);
 	return { run, items };
+}
+
+function simplifiedKey(path: string): string {
+	const [first, ...rest] = path.split('.');
+	return first + rest.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+}
+
+function valueAt(item: IDataObject, path: string): unknown {
+	let value: unknown = item;
+	for (const key of path.split('.')) {
+		if (value === null || typeof value !== 'object') {
+			return undefined;
+		}
+		value = (value as IDataObject)[key];
+	}
+	return value;
+}
+
+/**
+ * Applies the output setting to the results: the regular node shows 'Simplify', the AI tool
+ * shows 'Output' (Simplified, Raw or Selected Fields), as the n8n UX guidelines ask for items
+ * with more than 10 fields. Operations without a shape return their items unchanged.
+ */
+export function shapeItems(
+	this: IExecuteFunctions,
+	items: IDataObject[],
+	shape: OutputShape | undefined,
+	itemIndex: number,
+): IDataObject[] {
+	if (!shape) {
+		return items;
+	}
+	const output = this.getNodeParameter('output', itemIndex, '') as string;
+	const simplify = this.getNodeParameter('simplify', itemIndex, true) as boolean;
+	const mode = output || (simplify ? 'simple' : 'raw');
+	if (mode === 'raw') {
+		return items;
+	}
+	if (mode === 'fields') {
+		const selected = this.getNodeParameter('fields', itemIndex, []) as string[];
+		const keep = shape.idField ? [shape.idField, ...selected] : selected;
+		return items.map((item) => {
+			const picked: IDataObject = {};
+			for (const key of keep) {
+				if (key in item) {
+					picked[key] = item[key];
+				}
+			}
+			return picked;
+		});
+	}
+	return items.map((item) => {
+		const simplified: IDataObject = {};
+		for (const path of shape.simplified) {
+			const value = valueAt(item, path);
+			simplified[simplifiedKey(path)] = value === undefined ? null : (value as IDataObject[string]);
+		}
+		return simplified;
+	});
 }
